@@ -1,0 +1,253 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Chunk {
+
+  public static Vector3int size = new Vector3int (16, 32, 16);
+  public Mesh mesh;
+  public Vector3int position;
+    public bool ready = false;  
+
+    Block[] blocks;
+
+  public Chunk(Vector3int pos){
+
+        position = pos;
+    }
+    public void GenerateBlockArray(){
+        blocks = new Block[size.x * size.y * size.z];
+        int index = 0;
+            for (int x = 0; x < size.z; x++){
+                for(int y = 0; y < size.y; y++){
+                    for (int z = 0; z < size.z; z++){
+
+                    blocks[index] = Block.Filled;
+
+                    index++;
+                }
+            }
+
+        }
+
+    }
+    public IEnumerator GenerateMesh () {
+        yield return null;
+
+    }
+
+}
+
+fileFormatVersion: 2
+guid: 419e3a09e74e4c544b2236508c9e161c
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class MeshBuilder : ThreadedProcess {
+
+
+}
+
+fileFormatVersion: 2
+guid: b72a42f77cc737c4cb9664a0b1d1dad4
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+
+using System.Collections;
+using System.Collections.Generic;
+using System.Threading;
+//a helper class that makes threading easier
+public class ThreadedProcess
+{
+
+    bool m_isDone = false; 
+    object m_Handle = new object();
+    Thread m_thread = null;
+
+    public bool IsDone
+    {
+        
+        get
+        {
+            bool tmp;
+            //were getting the IsDone value by writing a get event then we use the set event right after
+            lock (m_Handle)
+            {
+                tmp = m_isDone;
+            }
+            return tmp;
+        }
+         
+        set
+        {
+
+            lock (m_Handle)
+            {
+                m_isDone = value;
+            }
+
+        }
+    }
+
+    public virtual void Start(){ //the reason its virtual is because so a class can derive from ThreadedProcess
+                                //and override this function in order to do its own thing with it.
+        m_thread = new Thread(Run);
+        m_thread.Start();       //also its the reason why these few public voids are all virtual. 
+    } 
+
+    public virtual World Abort(){ //look up "not all code returns a value"
+        m_thread.Abort();
+    }
+    public virtual void ThreadFunction()
+    {
+
+    }
+
+    public virtual void OnFinished() 
+    {//whatever we need to have finished will go here
+
+    }
+
+    public virtual bool Update() 
+    {
+        if (IsDone)
+        {
+            OnFinished();
+            return true; //this is good because IEnumerator waits for the update to finish
+        }//and you have to call update until the thread is finished
+        return false;
+    }
+    void Run(){
+        ThreadFunction();
+        IsDone = true;
+
+    }
+}
+
+
+fileFormatVersion: 2
+guid: 8b5bc4190413e5948a7fe7439b012102
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public struct Vector3int {//struct is value focused 
+    public int x, y, z; //to detect if you want struct or not structs are if you want to focus on the value
+
+    public Vector3int (int x, int y, int z){
+
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+	
+}
+
+fileFormatVersion: 2
+guid: 87215dbb14a2ff44496382131083f13c
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class World : MonoBehaviour {
+
+    public static Matrix4x4 id = Matrix4x4.identity;
+    public Material material;
+
+    Chunk chunk;
+
+	void Start () {
+        chunk = new Chunk(new Vector3int(0, 0, 0));
+        chunk.GenerateBlockArray();
+
+        StartCoroutine (chunk.GenerateMesh());
+	}
+	
+	// Update is called once per frame
+	void Update () {
+            if (chunk.ready)
+            {
+            Graphics.DrawMesh(chunk.mesh, id, material, 0);
+                    }
+        }
+    }
+fileFormatVersion: 2
+guid: 18c45a92b82994445914f009355dce4d
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public enum Block : ushort {
+    Air = 0x0000,
+    Filled = 0x0001
+}
+
+public static class Block_Extensions
+{
+    public static bool IsTransparent (this Block block) {
+        //if you are in the air then you are transparent if not then your solid/can connect with solid objects
+        return block == Block.Air;
+
+    }
+
+}
+
+fileFormatVersion: 2
+guid: 849d0f2e8401dce41901f265045a6435
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
